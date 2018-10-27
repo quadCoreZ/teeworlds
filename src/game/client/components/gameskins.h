@@ -12,6 +12,8 @@ public:
 	// do this better and nicer
 	struct CGameSkin
 	{
+		char m_aName[24];
+		IGraphics::CTextureHandle m_OrgTexture;
 
 		bool operator<(const CGameSkin &Other) { return str_comp(m_aName, Other.m_aName) < 0; }
 	};
