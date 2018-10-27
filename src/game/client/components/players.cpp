@@ -20,6 +20,8 @@
 
 #include "players.h"
 
+#include "gameskins.h"
+
 inline float NormalizeAngular(float f)
 {
 	return fmod(f+pi*2, pi*2);
@@ -79,9 +81,11 @@ void CPlayers::RenderHook(
 	// draw hook
 	if (Prev.m_HookState>0 && Player.m_HookState>0)
 	{
-		Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+		if(!m_pClient->m_pGameSkins->Num())
+			Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+		else
+		Graphics()->TextureSet(m_pClient->m_pGameSkins->Get(m_pClient->m_pGameSkins->Find(g_Config.m_ClGameSkin))->m_OrgTexture);
 		Graphics()->QuadsBegin();
-		//Graphics()->QuadsBegin();
 
 		vec2 Pos = Position;
 		vec2 HookPos;
@@ -272,7 +276,10 @@ void CPlayers::RenderPlayer(
 
 	// draw gun
 	{
-		Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+		if(!m_pClient->m_pGameSkins->Num())
+			Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+		else
+		Graphics()->TextureSet(m_pClient->m_pGameSkins->Get(m_pClient->m_pGameSkins->Find(g_Config.m_ClGameSkin))->m_OrgTexture);
 		Graphics()->QuadsBegin();
 		Graphics()->QuadsSetRotation(State.GetAttach()->m_Angle*pi*2+Angle);
 

@@ -46,6 +46,7 @@
 #include "components/nameplates.h"
 #include "components/scoreboard.h"
 #include "components/skins.h"
+#include "components/gameskins.h"
 #include "components/sounds.h"
 #include "components/spectator.h"
 #include "components/voting.h"
@@ -61,6 +62,7 @@ static CBinds gs_Binds;
 static CParticles gs_Particles;
 static CMenus gs_Menus;
 static CSkins gs_Skins;
+static CGameSkins gs_GameSkins;
 static CCountryFlags gs_CountryFlags;
 static CFlow gs_Flow;
 static CHud gs_Hud;
@@ -161,6 +163,7 @@ void CGameClient::OnConsoleInit()
 	m_pParticles = &::gs_Particles;
 	m_pMenus = &::gs_Menus;
 	m_pSkins = &::gs_Skins;
+	m_pGameSkins = &::gs_GameSkins;
 	m_pCountryFlags = &::gs_CountryFlags;
 	m_pChat = &::gs_Chat;
 	m_pFlow = &::gs_Flow;
@@ -179,6 +182,7 @@ void CGameClient::OnConsoleInit()
 
 	// make a list of all the systems, make sure to add them in the corrent render order
 	m_All.Add(m_pSkins);
+	m_All.Add(m_pGameSkins);
 	m_All.Add(m_pCountryFlags);
 	m_All.Add(m_pMapimages);
 	m_All.Add(m_pEffects); // doesn't render anything, just updates effects

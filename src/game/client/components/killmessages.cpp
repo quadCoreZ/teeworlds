@@ -1,5 +1,6 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
+#include <engine/shared/config.h>
 #include <engine/graphics.h>
 #include <engine/textrender.h>
 #include <engine/shared/config.h>
@@ -9,6 +10,8 @@
 #include <game/client/gameclient.h>
 #include <game/client/animstate.h>
 #include "killmessages.h"
+
+#include "gameskins.h"
 
 void CKillMessages::OnReset()
 {
@@ -76,7 +79,10 @@ void CKillMessages::OnRender()
 			if(m_aKillmsgs[r].m_ModeSpecial&1)
 			{
 				Graphics()->BlendNormal();
-				Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+				if(!m_pClient->m_pGameSkins->Num())
+					Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+				else
+					Graphics()->TextureSet(m_pClient->m_pGameSkins->Get(m_pClient->m_pGameSkins->Find(g_Config.m_ClGameSkin))->m_OrgTexture);
 				Graphics()->QuadsBegin();
 
 				if(m_aKillmsgs[r].m_VictimTeam == TEAM_RED)
@@ -98,7 +104,10 @@ void CKillMessages::OnRender()
 		x -= 44.0f;
 		if (m_aKillmsgs[r].m_Weapon >= 0)
 		{
-			Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+			if(!m_pClient->m_pGameSkins->Num())
+				Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+			else
+				Graphics()->TextureSet(m_pClient->m_pGameSkins->Get(m_pClient->m_pGameSkins->Find(g_Config.m_ClGameSkin))->m_OrgTexture);
 			Graphics()->QuadsBegin();
 			RenderTools()->SelectSprite(g_pData->m_Weapons.m_aId[m_aKillmsgs[r].m_Weapon].m_pSpriteBody);
 			RenderTools()->DrawSprite(x, y+28, 96);
@@ -113,7 +122,10 @@ void CKillMessages::OnRender()
 				if(m_aKillmsgs[r].m_ModeSpecial&2)
 				{
 					Graphics()->BlendNormal();
-					Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+					if(!m_pClient->m_pGameSkins->Num())
+						Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+					else
+						Graphics()->TextureSet(m_pClient->m_pGameSkins->Get(m_pClient->m_pGameSkins->Find(g_Config.m_ClGameSkin))->m_OrgTexture);
 					Graphics()->QuadsBegin();
 
 					if(m_aKillmsgs[r].m_KillerTeam == TEAM_RED)

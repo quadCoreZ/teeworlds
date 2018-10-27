@@ -12,8 +12,11 @@
 #include <game/client/components/flow.h>
 #include <game/client/components/effects.h>
 
+#include <engine/shared/config.h>
+
 #include "items.h"
 
+#include "gameskins.h"
 
 void CItems::RenderProjectile(const CNetObj_Projectile *pCurrent, int ItemID)
 {
@@ -49,7 +52,10 @@ void CItems::RenderProjectile(const CNetObj_Projectile *pCurrent, int ItemID)
 	vec2 PrevPos = CalcPos(StartPos, StartVel, Curvature, Speed, Ct-0.001f);
 
 
-	Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+	if(!m_pClient->m_pGameSkins->Num())
+		Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+	else
+		Graphics()->TextureSet(m_pClient->m_pGameSkins->Get(m_pClient->m_pGameSkins->Find(g_Config.m_ClGameSkin))->m_OrgTexture);
 	Graphics()->QuadsBegin();
 
 	RenderTools()->SelectSprite(g_pData->m_Weapons.m_aId[clamp(pCurrent->m_Type, 0, NUM_WEAPONS-1)].m_pSpriteProj);
@@ -98,7 +104,10 @@ void CItems::RenderProjectile(const CNetObj_Projectile *pCurrent, int ItemID)
 
 void CItems::RenderPickup(const CNetObj_Pickup *pPrev, const CNetObj_Pickup *pCurrent)
 {
-	Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+	if(!m_pClient->m_pGameSkins->Num())
+		Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+	else
+		Graphics()->TextureSet(m_pClient->m_pGameSkins->Get(m_pClient->m_pGameSkins->Find(g_Config.m_ClGameSkin))->m_OrgTexture);
 	Graphics()->QuadsBegin();
 	vec2 Pos = mix(vec2(pPrev->m_X, pPrev->m_Y), vec2(pCurrent->m_X, pCurrent->m_Y), Client()->IntraGameTick());
 	float Angle = 0.0f;
@@ -160,7 +169,10 @@ void CItems::RenderFlag(const CNetObj_Flag *pPrev, const CNetObj_Flag *pCurrent,
 	float Size = 42.0f;
 
 	Graphics()->BlendNormal();
-	Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+	if(!m_pClient->m_pGameSkins->Num())
+		Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+	else
+		Graphics()->TextureSet(m_pClient->m_pGameSkins->Get(m_pClient->m_pGameSkins->Find(g_Config.m_ClGameSkin))->m_OrgTexture);
 	Graphics()->QuadsBegin();
 
 	if(pCurrent->m_Team == TEAM_RED)

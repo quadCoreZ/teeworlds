@@ -13,6 +13,7 @@
 
 #include "spectator.h"
 
+#include "gameskins.h"
 
 void CSpectator::ConKeySpectator(IConsole::IResult *pResult, void *pUserData)
 {
@@ -234,7 +235,10 @@ void CSpectator::OnRender()
 			}
 
 			Graphics()->BlendNormal();
-			Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+			if(!m_pClient->m_pGameSkins->Num())
+				Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+			else
+				Graphics()->TextureSet(m_pClient->m_pGameSkins->Get(m_pClient->m_pGameSkins->Find(g_Config.m_ClGameSkin))->m_OrgTexture);
 			Graphics()->QuadsBegin();
 
 			RenderTools()->SelectSprite(Flag == SPEC_FLAGRED ? SPRITE_FLAG_RED : SPRITE_FLAG_BLUE);
@@ -293,7 +297,10 @@ void CSpectator::OnRender()
 			m_pClient->m_Snap.m_pGameDataFlag->m_FlagCarrierBlue == i))
 		{
 			Graphics()->BlendNormal();
-			Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+			if(!m_pClient->m_pGameSkins->Num())
+				Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+			else
+				Graphics()->TextureSet(m_pClient->m_pGameSkins->Get(m_pClient->m_pGameSkins->Find(g_Config.m_ClGameSkin))->m_OrgTexture);
 			Graphics()->QuadsBegin();
 
 			RenderTools()->SelectSprite(m_pClient->m_aClients[i].m_Team==TEAM_RED ? SPRITE_FLAG_BLUE : SPRITE_FLAG_RED, SPRITE_FLAG_FLIP_X);

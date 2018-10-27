@@ -1,5 +1,6 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
+#include <engine/shared/config.h>
 #include <engine/demo.h>
 #include <engine/graphics.h>
 #include <generated/protocol.h>
@@ -8,6 +9,8 @@
 #include <game/client/ui.h>
 #include <game/client/render.h>
 #include "damageind.h"
+
+#include "gameskins.h"
 
 CDamageInd::CDamageInd()
 {
@@ -45,7 +48,10 @@ void CDamageInd::Create(vec2 Pos, vec2 Dir)
 
 void CDamageInd::OnRender()
 {
-	Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+	if(!m_pClient->m_pGameSkins->Num())
+		Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+	else
+		Graphics()->TextureSet(m_pClient->m_pGameSkins->Get(m_pClient->m_pGameSkins->Find(g_Config.m_ClGameSkin))->m_OrgTexture);
 	Graphics()->QuadsBegin();
 	static float s_LastLocalTime = Client()->LocalTime();
 	for(int i = 0; i < m_NumItems;)

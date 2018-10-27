@@ -18,6 +18,8 @@
 #include "voting.h"
 #include "binds.h"
 
+#include "gameskins.h"
+
 CHud::CHud()
 {
 	// won't work if zero
@@ -197,7 +199,10 @@ void CHud::RenderScoreHud()
 					{
 						// draw flag
 						Graphics()->BlendNormal();
-						Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+						if(!m_pClient->m_pGameSkins->Num())
+							Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+						else
+							Graphics()->TextureSet(m_pClient->m_pGameSkins->Get(m_pClient->m_pGameSkins->Find(g_Config.m_ClGameSkin))->m_OrgTexture);
 						Graphics()->QuadsBegin();
 						RenderTools()->SelectSprite(t==0?SPRITE_FLAG_RED:SPRITE_FLAG_BLUE);
 						IGraphics::CQuadItem QuadItem(Whole-ScoreWidthMax-ImageSize, StartY+1.0f+t*20, ImageSize/2, ImageSize);
@@ -452,7 +457,10 @@ void CHud::RenderCursor()
 		return;
 
 	RenderTools()->MapScreenToGroup(m_pClient->m_pCamera->m_Center.x, m_pClient->m_pCamera->m_Center.y, Layers()->GameGroup(), m_pClient->m_pCamera->m_Zoom);
-	Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+	if(!m_pClient->m_pGameSkins->Num())
+			Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+		else
+		Graphics()->TextureSet(m_pClient->m_pGameSkins->Get(m_pClient->m_pGameSkins->Find(g_Config.m_ClGameSkin))->m_OrgTexture);
 	Graphics()->QuadsBegin();
 
 	// render cursor
@@ -485,7 +493,10 @@ void CHud::RenderHealthAndAmmo(const CNetObj_Character *pCharacter)
 		Rect.h = 8.0f;
 		RenderTools()->DrawUIRect(&Rect, vec4(0.9f, 0.2f, 0.2f, 0.85f), 0, 0.0f);
 
-		Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+		if(!m_pClient->m_pGameSkins->Num())
+			Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+		else
+		Graphics()->TextureSet(m_pClient->m_pGameSkins->Get(m_pClient->m_pGameSkins->Find(g_Config.m_ClGameSkin))->m_OrgTexture);
 		Graphics()->QuadsBegin();
 		Graphics()->SetColor(1.0f, 1.0f, 1.0f, 1.0f);
 		RenderTools()->SelectSprite(g_pData->m_Weapons.m_aId[WEAPON_NINJA].m_pSpriteBody);
@@ -494,7 +505,10 @@ void CHud::RenderHealthAndAmmo(const CNetObj_Character *pCharacter)
 	}
 	else
 	{
-		Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+		if(!m_pClient->m_pGameSkins->Num())
+			Graphics()->TextureSet(g_pData->m_aImages[IMAGE_GAME].m_Id);
+		else
+		Graphics()->TextureSet(m_pClient->m_pGameSkins->Get(m_pClient->m_pGameSkins->Find(g_Config.m_ClGameSkin))->m_OrgTexture);
 		Graphics()->QuadsBegin();
 		RenderTools()->SelectSprite(g_pData->m_Weapons.m_aId[pCharacter->m_Weapon%NUM_WEAPONS].m_pSpriteProj);
 		for(i = 0; i < min(pCharacter->m_AmmoCount, 10); i++)
