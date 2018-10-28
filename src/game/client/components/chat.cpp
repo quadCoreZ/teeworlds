@@ -367,7 +367,8 @@ void CChat::AddLine(int ClientID, int Mode, const char *pLine)
 {
 	if(*pLine == 0 || (ClientID != -1 && (!g_Config.m_ClShowsocial || m_pClient->m_aClients[ClientID].m_aName[0] == '\0' || // unknown client
 		m_pClient->m_aClients[ClientID].m_ChatIgnore ||
-		(m_pClient->m_LocalClientID != ClientID && g_Config.m_ClShowChatFriends && !m_pClient->m_aClients[ClientID].m_Friend))))
+		g_Config.m_ClFilterchat == 2 ||
+		(m_pClient->m_LocalClientID != ClientID && g_Config.m_ClFilterchat == 1 && !m_pClient->m_aClients[ClientID].m_Friend))))
 		return;
 
 	// trim right and set maximum length to 128 utf8-characters
@@ -402,7 +403,6 @@ void CChat::AddLine(int ClientID, int Mode, const char *pLine)
 	char *p = const_cast<char*>(pLine);
 	while(*p)
 	{
-		Highlighted = false;
 		pLine = p;
 		// find line seperator and strip multiline
 		while(*p)
@@ -422,17 +422,20 @@ void CChat::AddLine(int ClientID, int Mode, const char *pLine)
 		m_aLines[m_CurrentLine].m_Mode = Mode;
 		m_aLines[m_CurrentLine].m_NameColor = -2;
 
+		// check for highlighted name
+		Highlighted = false;
 		if(ClientID != m_pClient->m_LocalClientID) // do not highlight our own messages
 		{
-			// check for highlighted name
 			const char *pHL = str_find_nocase(pLine, m_pClient->m_aClients[m_pClient->m_LocalClientID].m_aName);
 			if(pHL)
 			{
 				int Length = str_length(m_pClient->m_aClients[m_pClient->m_LocalClientID].m_aName);
-				if((pLine == pHL || pHL[-1] == ' ') // space or nothing before
-					&& (((pHL[Length] == 0 || pHL[Length] == ' ') || pHL[Length] == ':') && (pHL[Length+1] == 0 || pHL[Length+1] == ' '))) // space or nothing after, allowing a colon
+				if((pLine == pHL || pHL[-1] == ' ')) // "" or " " before
 				{
-					Highlighted = true;
+					if((pHL[Length] == 0 || pHL[Length] == ' ')) // "" or " " after
+						Highlighted = true;
+					if(pHL[Length] == ':' && (pHL[Length+1] == 0 || pHL[Length+1] == ' ')) // ":" or ": " after
+						Highlighted = true;
 				}
 				m_CompletionFav = ClientID;
 			}
