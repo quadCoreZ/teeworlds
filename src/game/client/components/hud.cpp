@@ -10,6 +10,7 @@
 #include <game/client/gameclient.h>
 #include <game/client/animstate.h>
 #include <game/client/render.h>
+#include <game/client/teesurf.h>
 
 #include "menus.h"
 #include "controls.h"
@@ -21,6 +22,8 @@
 #include "gameskins.h"
 #include "scoreboard.h"
 #include "statboard.h"
+
+#include <time.h>
 
 CHud::CHud()
 {
@@ -35,6 +38,40 @@ void CHud::OnReset()
 	m_WarmupHideTick = 0;
 }
 
+void CHud::ConKeyTime(IConsole::IResult *pResult, void *pUserData)
+{
+	((CHud *)pUserData)->m_TimeIsActive = pResult->GetInteger(0) != 0;
+}
+
+void CHud::OnConsoleInit()
+{
+	Console()->Register("+time", "", CFGFLAG_CLIENT, ConKeyTime, this, "Show local computer time");
+}
+
+const char* CHud::DrawTime()
+{
+	// draw current local time
+	time_t Rawtime;
+	struct tm *t;
+
+	time(&Rawtime);
+	t = localtime(&Rawtime);
+
+	static char aTime[256];
+	str_format(aTime, sizeof(aTime), "%02d:%02d:%02d", t->tm_hour, t->tm_min, t->tm_sec);
+
+	return aTime;
+}
+
+void CHud::RenderTimeBox()
+{
+	float Half = 300.0f*Graphics()->ScreenAspect()/2.0f;
+	
+	Graphics()->BlendNormal();
+	CUIRect Rect = {Half-43, 3, 86, 20};
+	RenderTools()->DrawRoundRect(&Rect, vec4(0.1f, 0.1f, 0.1f, 0.3f), m_pClient->m_GameInfo.m_GameFlags&GAMEFLAG_TEAMS ? 0.0f : 4.0f);
+}
+
 void CHud::RenderGameTimer()
 {
 	float Half = 300.0f*Graphics()->ScreenAspect()/2.0f;
@@ -43,6 +80,16 @@ void CHud::RenderGameTimer()
 	{
 		char Buf[32];
 		int Time = 0;
+
+		float FontSize;
+		if(g_Config.m_ClTSHud & TS_HUD_SCORE && !(m_pClient->m_Snap.m_pGameData->m_GameStateFlags&GAMESTATEFLAG_GAMEOVER))
+		{
+			RenderTimeBox();
+			FontSize = 14.0f;
+		}
+		else
+			FontSize = 10.0f;
+
 		if(m_pClient->m_GameInfo.m_TimeLimit && !(m_pClient->m_Snap.m_pGameData->m_GameStateFlags&GAMESTATEFLAG_WARMUP))
 		{
 			Time = m_pClient->m_GameInfo.m_TimeLimit*60 - ((Client()->GameTick()-m_pClient->m_Snap.m_pGameData->m_GameStartTick)/Client()->GameTickSpeed());
@@ -56,15 +103,14 @@ void CHud::RenderGameTimer()
 			Time = (Client()->GameTick()-m_pClient->m_Snap.m_pGameData->m_GameStartTick)/Client()->GameTickSpeed();
 
 		str_format(Buf, sizeof(Buf), "%d:%02d", Time/60, Time%60);
-		float FontSize = 10.0f;
-		float w = TextRender()->TextWidth(0, FontSize, Buf, -1);
+		float w = TextRender()->TextWidth(0, FontSize, m_TimeIsActive ? DrawTime() : Buf, -1);
 		// last 60 sec red, last 10 sec blink
 		if(m_pClient->m_GameInfo.m_TimeLimit && Time <= 60 && !(m_pClient->m_Snap.m_pGameData->m_GameStateFlags&GAMESTATEFLAG_WARMUP))
 		{
 			float Alpha = Time <= 10 && (2*time_get()/time_freq()) % 2 ? 0.5f : 1.0f;
 			TextRender()->TextColor(1.0f, 0.25f, 0.25f, Alpha);
 		}
-		TextRender()->Text(0, Half-w/2, 2, FontSize, Buf, -1);
+		TextRender()->Text(0, Half-w/2, 2, FontSize, m_TimeIsActive ? DrawTime() : Buf, -1);
 		TextRender()->TextColor(1.0f, 1.0f, 1.0f, 1.0f);
 	}
 }
@@ -141,9 +187,9 @@ void CHud::RenderSuddenDeath()
 	{
 		float Half = 300.0f*Graphics()->ScreenAspect()/2.0f;
 		const char *pText = Localize("Sudden Death");
-		float FontSize = 12.0f;
-		float w = TextRender()->TextWidth(0, FontSize, pText, -1);
-		TextRender()->Text(0, Half-w/2, 2, FontSize, pText, -1);
+		float FontSize = m_TimeIsActive||g_Config.m_ClTSHud&TS_HUD_SCORE ? 10.5f : 12.0f;
+		float w = TextRender()->TextWidth(0, FontSize, m_TimeIsActive ? DrawTime() : pText, -1);
+		TextRender()->Text(0, Half-w/2, g_Config.m_ClTSHud & TS_HUD_SCORE ? 5 : 2, FontSize, m_TimeIsActive ? DrawTime() : pText, -1);
 	}
 }
 
@@ -152,8 +198,10 @@ void CHud::RenderScoreHud()
 	// render small score hud
 	if(!(m_pClient->m_Snap.m_pGameData->m_GameStateFlags&(GAMESTATEFLAG_ROUNDOVER|GAMESTATEFLAG_GAMEOVER)))
 	{
+		bool Flash = time_get()/(time_freq()/2)%2 == 0;
 		int GameFlags = m_pClient->m_GameInfo.m_GameFlags;
 		float Whole = 300*Graphics()->ScreenAspect();
+		float Half = Whole/2.0f;
 		float StartY = 229.0f;
 
 		if(GameFlags&GAMEFLAG_TEAMS && m_pClient->m_Snap.m_pGameDataTeam)
@@ -166,15 +214,52 @@ void CHud::RenderScoreHud()
 			float Split = 3.0f;
 			float ImageSize = GameFlags&GAMEFLAG_FLAGS ? 16.0f : Split;
 
+			bool TopScore = g_Config.m_ClTSHud & TS_HUD_SCORE;
+
 			for(int t = 0; t < NUM_TEAMS; t++)
 			{
+				bool ScoreFlash = m_pClient->m_GameInfo.m_ScoreLimit != 0;
+				int aTeamScore = t == 0 ? m_pClient->m_Snap.m_pGameDataTeam->m_TeamscoreRed : m_pClient->m_Snap.m_pGameDataTeam->m_TeamscoreBlue;
+
 				// draw box
 				CUIRect Rect = {Whole-ScoreWidthMax-ImageSize-2*Split, StartY+t*20, ScoreWidthMax+ImageSize+2*Split, 18.0f};
+				CUIRect TSRect = {t ? Half-87+130*t : Half-93+130*t, 3, 50, 20.0f};
 				Graphics()->BlendNormal();
-				RenderTools()->DrawUIRect(&Rect, t == 0 ? vec4(1.0f, 0.0f, 0.0f, 0.25f) : vec4(0.0f, 0.0f, 1.0f, 0.25f), CUI::CORNER_L, 5.0f);
+				if(ScoreFlash && g_Config.m_ClTSHud & TS_HUD_SCORE_FLASH && aTeamScore >= m_pClient->m_GameInfo.m_ScoreLimit-20 && m_pClient->m_GameInfo.m_ScoreLimit >= 100)
+					RenderTools()->DrawUIRect(TopScore ? &TSRect : &Rect, t == 0 ? vec4(1.0f, 0.0f, 0.0f, Flash ? 0.5f : 0.25f) : vec4(0.0f, 0.0f, 1.0f, Flash ? 0.5f : 0.25f), t == 0 ? CUI::CORNER_L : CUI::CORNER_R, 5.0f);
+				else
+					RenderTools()->DrawUIRect(TopScore ? &TSRect : &Rect, t == 0 ? vec4(1.0f, 0.0f, 0.0f, 0.25f) : vec4(0.0f, 0.0f, 1.0f, 0.25f), TopScore ? (t == 0 ? CUI::CORNER_L : CUI::CORNER_R) : CUI::CORNER_L, 5.0f);
 
 				// draw score
-				TextRender()->Text(0, Whole-ScoreWidthMax+(ScoreWidthMax-aScoreTeamWidth[t])/2-Split, StartY+t*20, 14.0f, aScoreTeam[t], -1);
+				float FontSize;
+				int High;
+				if(aTeamScore < 1001)
+				{
+					High = 3;
+					FontSize = 14.0f;
+				}
+				else if(aTeamScore > 1000 && aTeamScore < 10000)
+				{
+					High = 3.5;
+					FontSize = 13.5f;
+				}
+				else if(aTeamScore > 9999 && aTeamScore < 99999)
+				{
+					High = 8;
+					FontSize = 9.0f;
+				}
+				else
+				{
+					High = 8;
+					FontSize = 8.0f;
+				}
+
+				if(TopScore)
+					TextRender()->Text(0, t ? Half-87+130*t+14 : Half-93+130*t+14, High, FontSize, aScoreTeam[t], -1);
+				else
+					TextRender()->Text(0, Whole-ScoreWidthMax+(ScoreWidthMax-aScoreTeamWidth[t])/2-Split, StartY+t*20, 14.0f, aScoreTeam[t], -1);
+				
+				
 
 				if(GameFlags&GAMEFLAG_SURVIVAL)
 				{
@@ -197,6 +282,25 @@ void CHud::RenderScoreHud()
 				for(int t = 0; t < 2; t++)
 				{
 					int BlinkTimer = (FlagDropTick[t] != 0 && (Client()->GameTick()-FlagDropTick[t])/Client()->GameTickSpeed() >= 25) ? 10 : 20;
+
+					// TODO_TEESURF: improve this
+					if(g_Config.m_ClTSHud & TS_HUD_SCORE_FLAGRESPAWN)
+					{
+						int FlagRespawnTime = 0;
+
+						// Flag Respawn Time
+						if(FlagDropTick[t] != 0 && (Client()->GameTick()-FlagDropTick[t])/Client()->GameTickSpeed() >= 0)
+						{
+							FlagRespawnTime = (Client()->GameTick()-FlagDropTick[t])/Client()->GameTickSpeed();
+							char aRespawn[32];
+							str_format(aRespawn, sizeof(aRespawn), "%02d", (30-FlagRespawnTime%60));
+							TextRender()->Text(0, t ? Half-77+130*t+3 : Half-83+130*t+3, 23, 10.0f, aRespawn, -1);
+						}
+						else
+							FlagRespawnTime = 0;
+					}
+					
+
 					if(FlagCarrier[t] == FLAG_ATSTAND || (FlagCarrier[t] == FLAG_TAKEN && ((Client()->GameTick()/BlinkTimer)&1)))
 					{
 						// draw flag
@@ -207,7 +311,9 @@ void CHud::RenderScoreHud()
 							Graphics()->TextureSet(m_pClient->m_pGameSkins->Get(m_pClient->m_pGameSkins->Find(g_Config.m_ClGameSkin))->m_OrgTexture);
 						Graphics()->QuadsBegin();
 						RenderTools()->SelectSprite(t==0?SPRITE_FLAG_RED:SPRITE_FLAG_BLUE);
-						IGraphics::CQuadItem QuadItem(Whole-ScoreWidthMax-ImageSize, StartY+1.0f+t*20, ImageSize/2, ImageSize);
+						float QuadX = TopScore ? (t ? Half-87+130*t+3 : Half-93+130*t+3) : (Whole-ScoreWidthMax-ImageSize);
+						float QuadY = TopScore ? 5 : StartY+1.0f+t*20;
+						IGraphics::CQuadItem QuadItem(QuadX, QuadY, ImageSize/2, ImageSize);
 						Graphics()->QuadsDrawTL(&QuadItem, 1);
 						Graphics()->QuadsEnd();
 					}
@@ -218,13 +324,20 @@ void CHud::RenderScoreHud()
 						char aName[64];
 						str_format(aName, sizeof(aName), "%2d: %s", ID, g_Config.m_ClShowsocial ? m_pClient->m_aClients[ID].m_aName : "");
 						float w = TextRender()->TextWidth(0, 8.0f, aName, -1);
-						TextRender()->Text(0, min(Whole-w-1.0f, Whole-ScoreWidthMax-ImageSize-2*Split), StartY+(t+1)*20.0f-3.0f, 8.0f, aName, -1);
+						if(TopScore)
+							TextRender()->Text(0, t ? Half-87+130*t+3 : Half-93+130*t+3, 23, 10.0f, aName, -1);
+						else
+							TextRender()->Text(0, min(Whole-w-1.0f, Whole-ScoreWidthMax-ImageSize-2*Split), StartY+(t+1)*20.0f-3.0f, 8.0f, aName, -1);
 
 						// draw tee of the flag holder
 						CTeeRenderInfo Info = m_pClient->m_aClients[ID].m_RenderInfo;
 						Info.m_Size = 18.0f;
-						RenderTools()->RenderTee(CAnimState::GetIdle(), &Info, EMOTE_NORMAL, vec2(1,0),
-							vec2(Whole-ScoreWidthMax-Info.m_Size/2-Split, StartY+1.0f+Info.m_Size/2+t*20));
+						if(TopScore)
+							RenderTools()->RenderTee(CAnimState::GetIdle(), &Info, EMOTE_NORMAL, vec2(1,0),
+								vec2(t ? Half-87+130*t+8 : Half-93+130*t+8, 14));
+						else
+							RenderTools()->RenderTee(CAnimState::GetIdle(), &Info, EMOTE_NORMAL, vec2(1,0),
+								vec2(Whole-ScoreWidthMax-Info.m_Size/2-Split, StartY+1.0f+Info.m_Size/2+t*20));
 					}
 					StartY += 8.0f;
 				}
@@ -608,12 +721,11 @@ void CHud::OnRender()
 
 		if(!m_pClient->m_pScoreboard->Active() && !m_pClient->m_pStatboard->Active())
 		{
-			RenderGameTimer();
 			RenderPauseTimer();
 			RenderStartCountdown();
 			RenderDeadNotification();
 		}
-
+		RenderGameTimer();
 		RenderSuddenDeath();
 		RenderScoreHud();
 		RenderWarmupTimer();
