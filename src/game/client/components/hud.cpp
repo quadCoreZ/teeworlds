@@ -606,11 +606,15 @@ void CHud::OnRender()
 			RenderSpectatorHud();
 		}
 
-		RenderGameTimer();
-		RenderPauseTimer();
-		RenderStartCountdown();
-		RenderDeadNotification();
-		RenderSuddenDeath();
+		if(!m_pClient->m_pScoreboard->Active() && !m_pClient->m_pStatboard->Active())
+		{
+			RenderGameTimer();
+			RenderPauseTimer();
+			RenderStartCountdown();
+			RenderDeadNotification();
+			RenderSuddenDeath();
+		}
+
 		RenderScoreHud();
 		RenderWarmupTimer();
 		RenderFps();
