@@ -120,6 +120,14 @@ MACRO_CONFIG_INT(SvVoteKickBantime, sv_vote_kick_bantime, 5, 0, 1440, CFGFLAG_SA
 
 // TeeSurf
 
+/* laser colors */
+MACRO_CONFIG_INT(ClLaserOutR, cl_laser_out_r, 75, 0, 1000, CFGFLAG_CLIENT|CFGFLAG_SAVE_TEESURF, "Laser outer color (R)")
+MACRO_CONFIG_INT(ClLaserOutG, cl_laser_out_g, 75, 0, 1000, CFGFLAG_CLIENT|CFGFLAG_SAVE_TEESURF, "Laser outer color (G)")
+MACRO_CONFIG_INT(ClLaserOutB, cl_laser_out_b, 250, 0, 1000, CFGFLAG_CLIENT|CFGFLAG_SAVE_TEESURF, "Laser outer color (B)")
+MACRO_CONFIG_INT(ClLaserInR, cl_laser_in_r, 500, 0, 1000, CFGFLAG_CLIENT|CFGFLAG_SAVE_TEESURF, "Laser inner color (R)")
+MACRO_CONFIG_INT(ClLaserInG, cl_laser_in_g, 500, 0, 1000, CFGFLAG_CLIENT|CFGFLAG_SAVE_TEESURF, "Laser inner color (G)")
+MACRO_CONFIG_INT(ClLaserInB, cl_laser_in_b, 1000, 0, 1000, CFGFLAG_CLIENT|CFGFLAG_SAVE_TEESURF, "Laser inner color (B)")
+
 /* gameskins */
 MACRO_CONFIG_STR(ClGameSkin, cl_game_skin, 255, "default", CFGFLAG_CLIENT|CFGFLAG_SAVE_TEESURF, "What gameskin file to use")
 
