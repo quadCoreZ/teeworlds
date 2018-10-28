@@ -19,6 +19,7 @@
 #include "scoreboard.h"
 
 #include "gameskins.h"
+#include <game/client/teesurf.h>
 
 CScoreboard::CScoreboard()
 {
@@ -119,12 +120,32 @@ void CScoreboard::RenderScoreboard(float x, float y, float w, int Team, const ch
 	if(Team == TEAM_SPECTATORS)
 		return;
 
+	bool TeamColors = g_Config.m_ClScoreboardOption & TS_SCORE_TEAMCOLORS;
+	bool TeamSize = g_Config.m_ClScoreboardOption & TS_SCORE_TEAMSIZE;
+	bool Friends = g_Config.m_ClScoreboardOption & TS_SCORE_FRIENDS;
+	bool Kills = g_Config.m_ClScoreboardOption & TS_SCORE_KILLS;
+	bool Deaths = g_Config.m_ClScoreboardOption & TS_SCORE_DEATHS;
+
+	float Colored = 52.0f;
+	float Infos = 28.0f;
 	float h = 760.0f;
 	CUIRect Rect = {x, y, w, h};
 
-	// background
+	// header background
+	CUIRect HeaderRect = {x, y, w, Colored};
 	Graphics()->BlendNormal();
-	RenderTools()->DrawRoundRect(&Rect, vec4(0.0f, 0.0f, 0.0f, 0.5f), 17.0f);
+	if(TeamColors && m_pClient->m_GameInfo.m_GameFlags&GAMEFLAG_TEAMS)
+		RenderTools()->DrawUIRect(&HeaderRect, vec4(Team ? 0.0f : 1.0f, 0.0f, Team ? 1.0f : 0.0f, 0.35f), CUI::CORNER_T, 17.0f);
+	else
+		RenderTools()->DrawUIRect(&HeaderRect, vec4(0.0f, 0.0f, 0.0f, 0.6f), CUI::CORNER_T, 17.0f);
+	
+	// infos background
+	CUIRect InfosRect = {x, y + Colored, w, Infos};
+	RenderTools()->DrawUIRect(&InfosRect, vec4(0.0f, 0.0f, 0.0f, 0.55f), 0, 0);
+
+	// generell background
+	CUIRect BGRect = {x, y + Colored + Infos, w, h - (Colored + Infos)};
+	RenderTools()->DrawUIRect(&BGRect, vec4(0.0f, 0.0f, 0.0f, 0.5f), CUI::CORNER_B, 17.0f);
 
 	// render title
 	float TitleFontsize = 40.0f;
@@ -137,7 +158,10 @@ void CScoreboard::RenderScoreboard(float x, float y, float w, int Team, const ch
 		else
 			pTitle = Localize("Score board");
 	}
-	TextRender()->Text(0, x+20.0f, y, TitleFontsize, pTitle, -1);
+	// team size option
+	char aTitle[100];
+	str_format(aTitle, sizeof(aTitle), "%s (%d)", pTitle, m_pClient->m_GameInfo.m_aTeamSize[Team]);
+	TextRender()->Text(0, x+20.0f, y, TitleFontsize, TeamSize ? aTitle : pTitle, -1);
 
 	char aBuf[128] = {0};
 	if(m_pClient->m_GameInfo.m_GameFlags&GAMEFLAG_TEAMS)

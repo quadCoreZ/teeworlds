@@ -131,6 +131,11 @@ MACRO_CONFIG_INT(ClLaserInB, cl_laser_in_b, 1000, 0, 1000, CFGFLAG_CLIENT|CFGFLA
 /* gameskins */
 MACRO_CONFIG_STR(ClGameSkin, cl_game_skin, 255, "default", CFGFLAG_CLIENT|CFGFLAG_SAVE_TEESURF, "What gameskin file to use")
 
+/* scoreboard */
+MACRO_CONFIG_INT(ClScoreboardOption, cl_scoreboard_option, 31, 0, 31, CFGFLAG_CLIENT|CFGFLAG_SAVE_TEESURF, "Scoreboard Options")
+
+//
+
 // debug
 #ifdef CONF_DEBUG // this one can crash the server if not used correctly
 	MACRO_CONFIG_INT(DbgDummies, dbg_dummies, 0, 0, 15, CFGFLAG_SERVER, "")
