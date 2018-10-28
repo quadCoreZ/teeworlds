@@ -2427,8 +2427,9 @@ int main(int argc, const char **argv) // ignore_convention
 
 	if(!UseDefaultConfig)
 	{
-		// execute config file
+		// execute config files
 		pConsole->ExecuteFile("settings.cfg");
+		pConsole->ExecuteFile("teesurf.cfg");
 
 		// execute autoexec file
 		pConsole->ExecuteFile("autoexec.cfg");
@@ -2466,6 +2467,7 @@ int main(int argc, const char **argv) // ignore_convention
 
 	// write down the config and quit
 	pConfig->Save();
+	pConfig->SaveTeeSurf();
 
 	// free components
 	mem_free(pClient);
