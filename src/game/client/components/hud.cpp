@@ -19,6 +19,8 @@
 #include "binds.h"
 
 #include "gameskins.h"
+#include "scoreboard.h"
+#include "statboard.h"
 
 CHud::CHud()
 {
@@ -320,6 +322,9 @@ void CHud::RenderWarmupTimer()
 		float w = 0.0f;
 		const char *pText = Localize("Warmup");
 		
+		if(m_pClient->m_pScoreboard->Active() || m_pClient->m_pStatboard->Active())
+			m_WarmupHideTick = 10;
+
 		if(m_WarmupHideTick == 0 || (time_get() - m_WarmupHideTick) / time_freq() < 10)
 		{
 			w = TextRender()->TextWidth(0, FontSize, pText, -1);

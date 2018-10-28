@@ -19,104 +19,38 @@
 #include "menus.h"
 #include "scoreboard.h"
 #include "statboard.h"
+
 #include "gameskins.h"
 #include <game/client/teesurf.h>
 
-CScoreboard::CScoreboard()
+CStatboard::CStatboard()
 {
 	OnReset();
 }
 
-void CScoreboard::ConKeyScoreboard(IConsole::IResult *pResult, void *pUserData)
+void CStatboard::ConKeyStatboard(IConsole::IResult *pResult, void *pUserData)
 {
-	((CScoreboard *)pUserData)->m_Active = pResult->GetInteger(0) != 0;
+	((CStatboard *)pUserData)->m_Active = pResult->GetInteger(0) != 0;
 }
 
-void CScoreboard::OnReset()
+void CStatboard::OnReset()
+{
+	m_Active = false;
+	for(int i = 0; i < MAX_CLIENTS; i++)
+		m_aPlayerStats[i].Reset();
+}
+
+void CStatboard::OnRelease()
 {
 	m_Active = false;
 }
 
-void CScoreboard::OnRelease()
+void CStatboard::OnConsoleInit()
 {
-	m_Active = false;
+	Console()->Register("+statboard", "", CFGFLAG_CLIENT, ConKeyStatboard, this, "Show statboard");
 }
 
-void CScoreboard::OnConsoleInit()
-{
-	Console()->Register("+scoreboard", "", CFGFLAG_CLIENT, ConKeyScoreboard, this, "Show scoreboard");
-}
-
-void CScoreboard::RenderGoals(float x, float y, float w)
-{
-	float h = 50.0f;
-	CUIRect Rect = {x, y, w, h};
-
-	Graphics()->BlendNormal();
-	RenderTools()->DrawRoundRect(&Rect, vec4(0.0f, 0.0f, 0.0f, 0.5f), 10.0f);
-
-	// render goals
-	y += 10.0f;
-	if(m_pClient->m_GameInfo.m_ScoreLimit)
-	{
-		char aBuf[64];
-		str_format(aBuf, sizeof(aBuf), "%s: %d", Localize("Score limit"), m_pClient->m_GameInfo.m_ScoreLimit);
-		TextRender()->Text(0, x+10.0f, y, 20.0f, aBuf, -1);
-	}
-	if(m_pClient->m_GameInfo.m_TimeLimit)
-	{
-		char aBuf[64];
-		str_format(aBuf, sizeof(aBuf), Localize("Time limit: %d min"), m_pClient->m_GameInfo.m_TimeLimit);
-		TextRender()->Text(0, x+230.0f, y, 20.0f, aBuf, -1);
-	}
-	if(m_pClient->m_GameInfo.m_MatchNum && m_pClient->m_GameInfo.m_MatchCurrent)
-	{
-		char aBuf[64];
-		str_format(aBuf, sizeof(aBuf), "%s %d/%d", Localize("Match"), m_pClient->m_GameInfo.m_MatchCurrent, m_pClient->m_GameInfo.m_MatchNum);
-		float tw = TextRender()->TextWidth(0, 20.0f, aBuf, -1);
-		TextRender()->Text(0, x+w-tw-10.0f, y, 20.0f, aBuf, -1);
-	}
-}
-
-void CScoreboard::RenderSpectators(float x, float y, float w)
-{
-	float h = 140.0f;
-	CUIRect Rect = {x, y, w, h};
-
-	// background
-	Graphics()->BlendNormal();
-	RenderTools()->DrawRoundRect(&Rect, vec4(0.0f, 0.0f, 0.0f, 0.5f), 10.0f);
-
-	// Headline
-	y += 10.0f;
-	TextRender()->Text(0, x+10.0f, y, 28.0f, Localize("Spectators"), w-20.0f);
-
-	// spectator names
-	y += 30.0f;
-	bool Multiple = false;
-	CTextCursor Cursor;
-	TextRender()->SetCursor(&Cursor, x+10.0f, y, 22.0f, TEXTFLAG_RENDER);
-	Cursor.m_LineWidth = w-20.0f;
-	Cursor.m_MaxLines = 4;
-	for(int i = 0; i < MAX_CLIENTS; ++i)
-	{
-		const CNetObj_PlayerInfo *pInfo = m_pClient->m_Snap.m_paPlayerInfos[i];
-		if(!pInfo || m_pClient->m_aClients[i].m_Team != TEAM_SPECTATORS)
-			continue;
-
-		if(Multiple)
-			TextRender()->TextEx(&Cursor, ", ", -1);
-		if(pInfo->m_PlayerFlags&PLAYERFLAG_WATCHING)
-			TextRender()->TextColor(1.0f, 1.0f, 0.0f, 1.0f);
-		char aBuf[64];
-		str_format(aBuf, sizeof(aBuf), "%2d: %s", i, g_Config.m_ClShowsocial ? m_pClient->m_aClients[i].m_aName : "");
-		TextRender()->TextEx(&Cursor, aBuf, -1);
-		TextRender()->TextColor(1.0f, 1.0f, 1.0f, 1.0f);
-		Multiple = true;
-	}
-}
-
-void CScoreboard::RenderScoreboard(float x, float y, float w, int Team, const char *pTitle)
+void CStatboard::RenderStatboard(float x, float y, float w, int Team, const char *pTitle)
 {
 	if(Team == TEAM_SPECTATORS)
 		return;
@@ -154,7 +88,7 @@ void CScoreboard::RenderScoreboard(float x, float y, float w, int Team, const ch
 		else if(m_pClient->m_Snap.m_pGameData->m_GameStateFlags&GAMESTATEFLAG_ROUNDOVER)
 			pTitle = Localize("Round over");
 		else
-			pTitle = Localize("Scoreboard");
+			pTitle = Localize("Statboard");
 	}
 	// team size option
 	char aTitle[100];
@@ -187,7 +121,7 @@ void CScoreboard::RenderScoreboard(float x, float y, float w, int Team, const ch
 	// calculate measurements
 	x += 10.0f;
 	float LineHeight = 60.0f;
-	float TeeSizeMod = 1.0f;
+	float TeeSizeMod = 0.8f;
 	float Spacing = 16.0f;
 	if(m_pClient->m_GameInfo.m_aTeamSize[Team] > 12)
 	{
@@ -205,9 +139,10 @@ void CScoreboard::RenderScoreboard(float x, float y, float w, int Team, const ch
 	float ScoreOffset = x+10.0f, ScoreLength = 60.0f;
 	float TeeOffset = ScoreOffset+ScoreLength, TeeLength = 60*TeeSizeMod;
 	float NameOffset = TeeOffset+TeeLength, NameLength = 300.0f-TeeLength;
-	float PingOffset = x+610.0f, PingLength = 65.0f;
-	float CountryOffset = PingOffset-(LineHeight-Spacing-TeeSizeMod*5.0f)*2.0f, CountryLength = (LineHeight-Spacing-TeeSizeMod*5.0f)*2.0f;
-	float ClanOffset = x+370.0f, ClanLength = 230.0f-CountryLength;
+	float KillsOffset = x+370.0f, KillsLength = 60.0f;
+	float DeathsOffset = KillsOffset+KillsLength*2.0f, DeathsLength = 60.0f;
+	float RatioOffset = DeathsOffset+DeathsLength*1.5f, RatioLength = 60.0f;
+	float NetOffset = RatioOffset+RatioLength*1.5f, NetLength = 60.0f;
 
 	// render headlines
 	y += 50.0f;
@@ -216,14 +151,23 @@ void CScoreboard::RenderScoreboard(float x, float y, float w, int Team, const ch
 	tw = TextRender()->TextWidth(0, HeadlineFontsize, Localize("Score"), -1);
 	TextRender()->Text(0, ScoreOffset+ScoreLength-tw, y, HeadlineFontsize, Localize("Score"), -1);
 
-	TextRender()->Text(0, NameOffset, y, HeadlineFontsize, Localize("Name"), -1);
+	TextRender()->Text(0, NameOffset, y, HeadlineFontsize, Localize("Clan/Name"), -1);
 
-	tw = TextRender()->TextWidth(0, HeadlineFontsize, Localize("Clan"), -1);
-	TextRender()->Text(0, ClanOffset+ClanLength/2-tw/2, y, HeadlineFontsize, Localize("Clan"), -1);
+	// kills
+		tw = TextRender()->TextWidth(0, HeadlineFontsize, Localize("Kills"), -1);
+		TextRender()->Text(0, KillsOffset+KillsLength-tw, y, HeadlineFontsize, Localize("Kills"), -1);
 
-	tw = TextRender()->TextWidth(0, HeadlineFontsize, Localize("Ping"), -1);
-	TextRender()->Text(0, PingOffset+PingLength-tw, y, HeadlineFontsize, Localize("Ping"), -1);
-	TextRender()->TextColor(1.0f, 1.0f, 1.0f, 1.0f);
+	// deaths
+	tw = TextRender()->TextWidth(0, HeadlineFontsize, Localize("Deaths"), -1);
+	TextRender()->Text(0, DeathsOffset+DeathsLength-tw, y, HeadlineFontsize, Localize("Deaths"), -1);
+
+	// ratio
+	tw = TextRender()->TextWidth(0, HeadlineFontsize, Localize("Ratio"), -1);
+	TextRender()->Text(0, RatioOffset+RatioLength-tw, y, HeadlineFontsize, Localize("Ratio"), -1);
+
+	// net
+	tw = TextRender()->TextWidth(0, HeadlineFontsize, Localize("Net"), -1);
+	TextRender()->Text(0, NetOffset+NetLength-tw, y, HeadlineFontsize, Localize("Net"), -1);
 
 
 	// render player entries
@@ -311,65 +255,65 @@ void CScoreboard::RenderScoreboard(float x, float y, float w, int Team, const ch
 			TextRender()->SetCursor(&Cursor, NameOffset, y+Spacing, FontSize, TEXTFLAG_RENDER|TEXTFLAG_STOP_AT_END);
 			Cursor.m_LineWidth = NameLength;
 			char aBuf[64];
-			str_format(aBuf, sizeof(aBuf), "%2d: %s", pInfo->m_ClientID, g_Config.m_ClShowsocial ? m_pClient->m_aClients[pInfo->m_ClientID].m_aName : "");
+			if(g_Config.m_ClShowsocial)
+				str_format(aBuf, sizeof(aBuf), "%s: %s", m_pClient->m_aClients[pInfo->m_ClientID].m_aClan, m_pClient->m_aClients[pInfo->m_ClientID].m_aName);
+			else
+				str_format(aBuf, sizeof(aBuf), "%2d", pInfo->m_ClientID);
 			TextRender()->TextEx(&Cursor, aBuf, -1);
 			TextRender()->TextColor(1.0f, 1.0f, 1.0f, ColorAlpha);
-
-			// clan
-			tw = TextRender()->TextWidth(0, FontSize, m_pClient->m_aClients[pInfo->m_ClientID].m_aClan, -1);
-			TextRender()->SetCursor(&Cursor, ClanOffset+ClanLength/2-tw/2, y+Spacing, FontSize, TEXTFLAG_RENDER|TEXTFLAG_STOP_AT_END);
-			Cursor.m_LineWidth = ClanLength;
-			TextRender()->TextEx(&Cursor, (g_Config.m_ClShowsocial ? m_pClient->m_aClients[pInfo->m_ClientID].m_aClan : ""), -1);
-
-			// country flag
-			vec4 Color(1.0f, 1.0f, 1.0f, 0.5f*ColorAlpha);
-			m_pClient->m_pCountryFlags->Render(m_pClient->m_aClients[pInfo->m_ClientID].m_Country, &Color,
-												CountryOffset, y+(Spacing+TeeSizeMod*5.0f)/2.0f, CountryLength, LineHeight-Spacing-TeeSizeMod*5.0f);
-
-			// ping
-			str_format(aBuf, sizeof(aBuf), "%d", clamp(pInfo->m_pPlayerInfo->m_Latency, 0, 1000));
-			TextRender()->TextColor(1.0f, 1.0f, 1.0f, 0.7f);
+			
+			// kills
+			str_format(aBuf, sizeof(aBuf), "%d", clamp(pInfo->m_pPlayerInfo->m_Score, -999, 999));
 			tw = TextRender()->TextWidth(0, FontSize, aBuf, -1);
-			TextRender()->SetCursor(&Cursor, PingOffset+PingLength-tw, y+Spacing, FontSize, TEXTFLAG_RENDER|TEXTFLAG_STOP_AT_END);
-			Cursor.m_LineWidth = PingLength;
+			TextRender()->SetCursor(&Cursor, ScoreOffset+ScoreLength-tw, y+Spacing, FontSize, TEXTFLAG_RENDER|TEXTFLAG_STOP_AT_END);
+			Cursor.m_LineWidth = ScoreLength;
 			TextRender()->TextEx(&Cursor, aBuf, -1);
-			TextRender()->TextColor(1.0f, 1.0f, 1.0f, 1.0f);
-			y += LineHeight+Spacing;
+
+			str_format(aBuf, sizeof(aBuf), "%d", clamp(m_aPlayerStats[pInfo->m_ClientID].m_Kills, 0, 999));
+			tw = TextRender()->TextWidth(0, FontSize, aBuf, -1);
+			TextRender()->SetCursor(&Cursor, KillsOffset+KillsLength/2-tw/2, y+Spacing, FontSize, TEXTFLAG_RENDER|TEXTFLAG_STOP_AT_END);
+			Cursor.m_LineWidth = KillsLength;
+			TextRender()->TextEx(&Cursor, aBuf, -1);
+
+			// deaths
+			str_format(aBuf, sizeof(aBuf), "%d", clamp(m_aPlayerStats[pInfo->m_ClientID].m_Deaths, 0, 999));
+			tw = TextRender()->TextWidth(0, FontSize, aBuf, -1);
+			TextRender()->SetCursor(&Cursor, DeathsOffset+DeathsLength/2-tw/2, y+Spacing, FontSize, TEXTFLAG_RENDER|TEXTFLAG_STOP_AT_END);
+			Cursor.m_LineWidth = DeathsLength;
+			TextRender()->TextEx(&Cursor, aBuf, -1);
+
+			// ratio
+			if(m_aPlayerStats[pInfo->m_ClientID].m_Kills != 0 && m_aPlayerStats[pInfo->m_ClientID].m_Deaths != 0)
+				str_format(aBuf, sizeof(aBuf), "%.2f", (float)m_aPlayerStats[pInfo->m_ClientID].m_Kills / (float)m_aPlayerStats[pInfo->m_ClientID].m_Deaths);
+			else if(m_aPlayerStats[pInfo->m_ClientID].m_Kills != 0 && m_aPlayerStats[pInfo->m_ClientID].m_Deaths == 0)
+				str_format(aBuf, sizeof(aBuf), "%d.00",clamp(m_aPlayerStats[pInfo->m_ClientID].m_Kills, 0, 99));
+			else
+				str_format(aBuf, sizeof(aBuf), "0.00");
+			tw = TextRender()->TextWidth(0, FontSize, aBuf, -1);
+			TextRender()->SetCursor(&Cursor, RatioOffset+RatioLength/2-tw/2, y+Spacing, FontSize, TEXTFLAG_RENDER|TEXTFLAG_STOP_AT_END);
+			Cursor.m_LineWidth = RatioLength;
+			TextRender()->TextEx(&Cursor, aBuf, -1);
+
+			// net
+			if(m_aPlayerStats[pInfo->m_ClientID].m_Kills == m_aPlayerStats[pInfo->m_ClientID].m_Deaths)
+				str_format(aBuf, sizeof(aBuf), "0");
+			else
+				str_format(aBuf, sizeof(aBuf), "%+d", m_aPlayerStats[pInfo->m_ClientID].m_Kills - m_aPlayerStats[pInfo->m_ClientID].m_Deaths);
+			tw = TextRender()->TextWidth(0, FontSize, aBuf, -1);
+			TextRender()->SetCursor(&Cursor, NetOffset+NetLength/2-tw/2, y+Spacing, FontSize, TEXTFLAG_RENDER|TEXTFLAG_STOP_AT_END);
+			Cursor.m_LineWidth = NetLength;
+			TextRender()->TextEx(&Cursor, aBuf, -1);
 		}
 	}
 	TextRender()->TextColor(1.0f, 1.0f, 1.0f, 1.0f);
 }
 
-void CScoreboard::RenderRecordingNotification(float x)
-{
-	if(!m_pClient->DemoRecorder()->IsRecording())
-		return;
-
-	//draw the box
-	CUIRect Rect = {x, 0.0f, 180.0f, 50.0f};
-	Graphics()->BlendNormal();
-	RenderTools()->DrawUIRect(&Rect, vec4(0.0f, 0.0f, 0.0f, 0.4f), CUI::CORNER_B, 15.0f);
-
-	//draw the red dot
-	Rect.x = x+20;
-	Rect.y = 15.0f;
-	Rect.w = 20.0f;
-	Rect.h = 20.0f;
-	RenderTools()->DrawRoundRect(&Rect, vec4(1.0f, 0.0f, 0.0f, 1.0f), 10.0f);
-
-	//draw the text
-	char aBuf[64];
-	int Seconds = m_pClient->DemoRecorder()->Length();
-	str_format(aBuf, sizeof(aBuf), Localize("REC %3d:%02d"), Seconds/60, Seconds%60);
-	TextRender()->Text(0, x+50.0f, 10.0f, 20.0f, aBuf, -1);
-}
-
-void CScoreboard::OnRender()
+void CStatboard::OnRender()
 {
 	if(!Active())
 		return;
 
-	// if the score board is active, then we should clear the motd message aswell
+	// if the statboard is active, then we should clear the motd message aswell
 	if(m_pClient->m_pMotd->IsActive())
 		m_pClient->m_pMotd->Clear();
 
@@ -379,17 +323,17 @@ void CScoreboard::OnRender()
 
 	Graphics()->MapScreen(0, 0, Width, Height);
 
-	float w = 700.0f;
+	float w = 760.0f;
 	float y = 170.0f;
 
 	if(m_pClient->m_Snap.m_pGameData)
 	{
 		if(!(m_pClient->m_GameInfo.m_GameFlags&GAMEFLAG_TEAMS))
-			RenderScoreboard(Width/2-w/2, y, w, 0, 0);
+			RenderStatboard(Width/2-w/2, y, w, 0, 0);
 		else if(m_pClient->m_Snap.m_pGameDataTeam)
 		{
-			const char *pRedClanName = GetClanName(TEAM_RED);
-			const char *pBlueClanName = GetClanName(TEAM_BLUE);
+			const char *pRedClanName = m_pClient->m_pScoreboard->GetClanName(TEAM_RED);
+			const char *pBlueClanName = m_pClient->m_pScoreboard->GetClanName(TEAM_BLUE);
 
 			if(m_pClient->m_Snap.m_pGameData->m_GameStateFlags&GAMESTATEFLAG_GAMEOVER)
 			{
@@ -423,67 +367,59 @@ void CScoreboard::OnRender()
 				TextRender()->Text(0, Width/2-w/2, 39, 86.0f, aText, -1);
 			}
 
-			RenderScoreboard(Width/2-w-5.0f, y, w, TEAM_RED, pRedClanName ? pRedClanName : Localize("Red team"));
-			RenderScoreboard(Width/2+5.0f, y, w, TEAM_BLUE, pBlueClanName ? pBlueClanName : Localize("Blue team"));
+			RenderStatboard(Width/2-w-5.0f, y, w, TEAM_RED, pRedClanName ? pRedClanName : Localize("Red team"));
+			RenderStatboard(Width/2+5.0f, y, w, TEAM_BLUE, pBlueClanName ? pBlueClanName : Localize("Blue team"));
 		}
-
-		RenderGoals(Width/2-w/2, y+760+10, w);
-		RenderSpectators(Width/2-w/2, y+760+10+50+10, w);
 	}
-
-	RenderRecordingNotification((Width/7)*4);
 }
 
-bool CScoreboard::Active()
+bool CStatboard::Active()
 {
-	// if we activly wanna look on the scoreboard
-	if(m_Active && !m_pClient->m_pStatboard->Active() && !m_pClient->m_pMenus->IsActive())
+	// if we activly wanna look on the statboard
+	if(m_Active && !m_pClient->m_pMenus->IsActive())
 		return true;
 
 	// skip if motd is present
 	if(m_pClient->m_pMotd->IsActive())
 		return false;
 
-	if(m_pClient->m_LocalClientID != -1 && m_pClient->m_aClients[m_pClient->m_LocalClientID].m_Team != TEAM_SPECTATORS)
-	{
-		// we are not a spectator, check if we are dead, don't follow a player and the game isn't paused
-		if(!m_pClient->m_Snap.m_pLocalCharacter && !m_pClient->m_Snap.m_SpecInfo.m_Active &&
-			!(m_pClient->m_Snap.m_pGameData && m_pClient->m_Snap.m_pGameData->m_GameStateFlags&GAMESTATEFLAG_PAUSED) && !m_pClient->m_pStatboard->Active())
-			return true;
-	}
-
-	// if the game is over
-	if(m_pClient->m_Snap.m_pGameData && m_pClient->m_Snap.m_pGameData->m_GameStateFlags&(GAMESTATEFLAG_ROUNDOVER|GAMESTATEFLAG_GAMEOVER))
-		return true;
-
 	return false;
 }
 
-const char *CScoreboard::GetClanName(int Team)
+void CStatboard::OnMessage(int MsgType, void *pRawMsg)
 {
-	int ClanPlayers = 0;
-	const char *pClanName = 0;
-	for(int i = 0; i < MAX_CLIENTS; i++)
+	if(MsgType == NETMSGTYPE_SV_KILLMSG)
 	{
-		if(!m_pClient->m_aClients[i].m_Active || m_pClient->m_aClients[i].m_Team != Team)
-			continue;
-
-		if(!pClanName)
-		{
-			pClanName = m_pClient->m_aClients[i].m_aClan;
-			ClanPlayers++;
-		}
-		else
-		{
-			if(str_comp(m_pClient->m_aClients[i].m_aClan, pClanName) == 0)
-				ClanPlayers++;
-			else
-				return 0;
-		}
+		CNetMsg_Sv_KillMsg *pMsg = (CNetMsg_Sv_KillMsg *)pRawMsg;
+		m_aPlayerStats[pMsg->m_Victim].m_Deaths++;
+		if(pMsg->m_Victim != pMsg->m_Killer)
+			m_aPlayerStats[pMsg->m_Killer].m_Kills++;
 	}
+	else if(MsgType == NETMSGTYPE_SV_CLIENTDROP && Client()->State() != IClient::STATE_DEMOPLAYBACK)
+	{
+		CNetMsg_Sv_ClientDrop *pMsg = (CNetMsg_Sv_ClientDrop *)pRawMsg;
+		if(m_pClient->m_LocalClientID == pMsg->m_ClientID || !m_pClient->m_aClients[pMsg->m_ClientID].m_Active)
+		{
+			if(g_Config.m_Debug)
+				Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, "client", "invalid clientdrop");
+			return;
+		}
+		ResetPlayerStats(pMsg->m_ClientID);
+	}
+}
 
-	if(ClanPlayers > 1 && pClanName[0])
-		return pClanName;
-	else
-		return 0;
+void CStatboard::ResetPlayerStats(int ClientID)
+{
+	m_aPlayerStats[ClientID].Reset();
+}
+
+CStatboard::CPlayerStats::CPlayerStats()
+{
+	m_Kills = 0;
+	m_Deaths = 0;
+} 
+void CStatboard::CPlayerStats::Reset()
+{
+	m_Kills = 0;
+	m_Deaths = 0;
 }
