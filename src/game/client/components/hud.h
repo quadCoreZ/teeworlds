@@ -23,12 +23,20 @@ class CHud : public CComponent
 	void RenderDeadNotification();
 	void RenderSuddenDeath();
 	void RenderScoreHud();
+	void RenderTSScoreHud();
 	void RenderSpectatorHud();
 	void RenderWarmupTimer();
+	void RenderTimeBox();
+
+	static void ConKeyTime(IConsole::IResult *pResult, void *pUserData);
+	bool m_TimeIsActive;
+	const char* DrawTime();
+
 public:
 	CHud();
 
 	virtual void OnReset();
+	virtual void OnConsoleInit();
 	virtual void OnRender();
 };
 
