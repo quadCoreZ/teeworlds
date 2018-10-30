@@ -154,8 +154,8 @@ void CStatboard::RenderStatboard(float x, float y, float w, int Team, const char
 	TextRender()->Text(0, NameOffset, y, HeadlineFontsize, Localize("Clan/Name"), -1);
 
 	// kills
-		tw = TextRender()->TextWidth(0, HeadlineFontsize, Localize("Kills"), -1);
-		TextRender()->Text(0, KillsOffset+KillsLength-tw, y, HeadlineFontsize, Localize("Kills"), -1);
+	tw = TextRender()->TextWidth(0, HeadlineFontsize, Localize("Kills"), -1);
+	TextRender()->Text(0, KillsOffset+KillsLength-tw, y, HeadlineFontsize, Localize("Kills"), -1);
 
 	// deaths
 	tw = TextRender()->TextWidth(0, HeadlineFontsize, Localize("Deaths"), -1);
@@ -262,13 +262,14 @@ void CStatboard::RenderStatboard(float x, float y, float w, int Team, const char
 			TextRender()->TextEx(&Cursor, aBuf, -1);
 			TextRender()->TextColor(1.0f, 1.0f, 1.0f, ColorAlpha);
 			
-			// kills
+			// score
 			str_format(aBuf, sizeof(aBuf), "%d", clamp(pInfo->m_pPlayerInfo->m_Score, -999, 999));
 			tw = TextRender()->TextWidth(0, FontSize, aBuf, -1);
 			TextRender()->SetCursor(&Cursor, ScoreOffset+ScoreLength-tw, y+Spacing, FontSize, TEXTFLAG_RENDER|TEXTFLAG_STOP_AT_END);
 			Cursor.m_LineWidth = ScoreLength;
 			TextRender()->TextEx(&Cursor, aBuf, -1);
 
+			// kills
 			str_format(aBuf, sizeof(aBuf), "%d", clamp(m_aPlayerStats[pInfo->m_ClientID].m_Kills, 0, 999));
 			tw = TextRender()->TextWidth(0, FontSize, aBuf, -1);
 			TextRender()->SetCursor(&Cursor, KillsOffset+KillsLength/2-tw/2, y+Spacing, FontSize, TEXTFLAG_RENDER|TEXTFLAG_STOP_AT_END);
@@ -303,6 +304,9 @@ void CStatboard::RenderStatboard(float x, float y, float w, int Team, const char
 			TextRender()->SetCursor(&Cursor, NetOffset+NetLength/2-tw/2, y+Spacing, FontSize, TEXTFLAG_RENDER|TEXTFLAG_STOP_AT_END);
 			Cursor.m_LineWidth = NetLength;
 			TextRender()->TextEx(&Cursor, aBuf, -1);
+
+			TextRender()->TextColor(1.0f, 1.0f, 1.0f, 1.0f);
+			y += LineHeight+Spacing;
 		}
 	}
 	TextRender()->TextColor(1.0f, 1.0f, 1.0f, 1.0f);
@@ -371,6 +375,8 @@ void CStatboard::OnRender()
 			RenderStatboard(Width/2+5.0f, y, w, TEAM_BLUE, pBlueClanName ? pBlueClanName : Localize("Blue team"));
 		}
 	}
+
+	m_pClient->m_pScoreboard->RenderRecordingNotification((Width/7)*6);
 }
 
 bool CStatboard::Active()

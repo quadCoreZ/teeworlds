@@ -1046,8 +1046,36 @@ void CGameClient::OnNewSnapshot()
 				if(!s_GameOver && m_Snap.m_pGameData->m_GameStateFlags&GAMESTATEFLAG_GAMEOVER)
 					OnGameOver();
 				else if(s_GameOver && !(m_Snap.m_pGameData->m_GameStateFlags&GAMESTATEFLAG_GAMEOVER))
+				{
 					OnStartGame();
+
+					// reset player stats
+					for(int i = 0; i < MAX_CLIENTS; i++)
+						m_pStatboard->ResetPlayerStats(i);
+				}
 				s_GameOver = m_Snap.m_pGameData->m_GameStateFlags&GAMESTATEFLAG_GAMEOVER;
+
+				// reset player stats
+				// time workaround: we need the time indicator because we don't know exactly if it is a restart or only an unpause.
+				int Time = 0;
+				if(m_GameInfo.m_TimeLimit && !(m_Snap.m_pGameData->m_GameStateFlags&GAMESTATEFLAG_WARMUP))
+				{
+					Time = m_GameInfo.m_TimeLimit*60 - ((Client()->GameTick()-m_Snap.m_pGameData->m_GameStartTick)/Client()->GameTickSpeed());
+
+					if(m_Snap.m_pGameData->m_GameStateFlags&(GAMESTATEFLAG_ROUNDOVER|GAMESTATEFLAG_GAMEOVER))
+						Time = 0;
+				}
+				else if(m_Snap.m_pGameData->m_GameStateFlags&(GAMESTATEFLAG_ROUNDOVER|GAMESTATEFLAG_GAMEOVER))
+					Time = m_Snap.m_pGameData->m_GameStateEndTick/Client()->GameTickSpeed();
+				else
+					Time = (Client()->GameTick()-m_Snap.m_pGameData->m_GameStartTick)/Client()->GameTickSpeed();
+				static bool s_EndTick = 0;
+				if(s_EndTick && !(m_Snap.m_pGameData->m_GameStateFlags&GAMESTATEFLAG_STARTCOUNTDOWN) && Time == 0)
+				{
+					for(int i = 0; i < MAX_CLIENTS; i++)
+						m_pStatboard->ResetPlayerStats(i);
+				}
+				s_EndTick = m_Snap.m_pGameData->m_GameStateEndTick;
 			}
 			else if(Item.m_Type == NETOBJTYPE_GAMEDATATEAM)
 			{

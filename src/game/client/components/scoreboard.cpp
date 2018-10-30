@@ -431,7 +431,7 @@ void CScoreboard::OnRender()
 		RenderSpectators(Width/2-w/2, y+760+10+50+10, w);
 	}
 
-	RenderRecordingNotification((Width/7)*4);
+	RenderRecordingNotification((Width/7)*6);
 }
 
 bool CScoreboard::Active()
@@ -453,7 +453,7 @@ bool CScoreboard::Active()
 	}
 
 	// if the game is over
-	if(m_pClient->m_Snap.m_pGameData && m_pClient->m_Snap.m_pGameData->m_GameStateFlags&(GAMESTATEFLAG_ROUNDOVER|GAMESTATEFLAG_GAMEOVER))
+	if(m_pClient->m_Snap.m_pGameData && m_pClient->m_Snap.m_pGameData->m_GameStateFlags&(GAMESTATEFLAG_ROUNDOVER|GAMESTATEFLAG_GAMEOVER) && !m_pClient->m_pStatboard->Active())
 		return true;
 
 	return false;

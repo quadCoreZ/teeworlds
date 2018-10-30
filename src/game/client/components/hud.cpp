@@ -435,10 +435,7 @@ void CHud::RenderWarmupTimer()
 		float w = 0.0f;
 		const char *pText = Localize("Warmup");
 		
-		if(m_pClient->m_pScoreboard->Active() || m_pClient->m_pStatboard->Active())
-			m_WarmupHideTick = 10;
-
-		if(m_WarmupHideTick == 0 || (time_get() - m_WarmupHideTick) / time_freq() < 10)
+		if(m_WarmupHideTick == 0 || (time_get() - m_WarmupHideTick) / time_freq() < 10 && !(m_pClient->m_pScoreboard->Active() || m_pClient->m_pStatboard->Active()))
 		{
 			w = TextRender()->TextWidth(0, FontSize, pText, -1);
 			TextRender()->Text(0, 150*Graphics()->ScreenAspect()+-w/2, 50, FontSize, pText, -1);
@@ -472,7 +469,7 @@ void CHud::RenderWarmupTimer()
 				str_format(aBuf, sizeof(aBuf), "%d", round_to_int(Seconds));
 		}
 		
-		if(m_WarmupHideTick == 0 || (time_get() - m_WarmupHideTick) / time_freq() < 10)
+		if(m_WarmupHideTick == 0 || (time_get() - m_WarmupHideTick) / time_freq() < 10 && !(m_pClient->m_pScoreboard->Active() || m_pClient->m_pStatboard->Active()))
 		{
 			w = TextRender()->TextWidth(0, FontSize, aBuf, -1);
 			TextRender()->Text(0, 150*Graphics()->ScreenAspect()+-w/2, 75, FontSize, aBuf, -1);
