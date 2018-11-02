@@ -1671,20 +1671,25 @@ void CClient::VersionUpdate()
 	{
 		if(m_VersionInfo.m_VersionServeraddr.m_Job.Status() == CJob::STATE_DONE)
 		{
-			CNetChunk Packet;
+			if(m_VersionInfo.m_VersionServeraddr.m_Job.Result() == 0)
+			{
+				CNetChunk Packet;
 
-			mem_zero(&Packet, sizeof(Packet));
+				mem_zero(&Packet, sizeof(Packet));
 
-			m_VersionInfo.m_VersionServeraddr.m_Addr.port = VERSIONSRV_PORT;
+				m_VersionInfo.m_VersionServeraddr.m_Addr.port = VERSIONSRV_PORT;
 
-			Packet.m_ClientID = -1;
-			Packet.m_Address = m_VersionInfo.m_VersionServeraddr.m_Addr;
-			Packet.m_pData = VERSIONSRV_GETVERSION;
-			Packet.m_DataSize = sizeof(VERSIONSRV_GETVERSION);
-			Packet.m_Flags = NETSENDFLAG_CONNLESS;
+				Packet.m_ClientID = -1;
+				Packet.m_Address = m_VersionInfo.m_VersionServeraddr.m_Addr;
+				Packet.m_pData = VERSIONSRV_GETVERSION;
+				Packet.m_DataSize = sizeof(VERSIONSRV_GETVERSION);
+				Packet.m_Flags = NETSENDFLAG_CONNLESS;
 
-			m_ContactClient.Send(&Packet);
-			m_VersionInfo.m_State = CVersionInfo::STATE_READY;
+				m_ContactClient.Send(&Packet);
+				m_VersionInfo.m_State = CVersionInfo::STATE_READY;
+			}
+			else
+				m_VersionInfo.m_State = CVersionInfo::STATE_ERROR;
 		}
 	}
 }
@@ -2431,14 +2436,25 @@ void CClient::HandleTeeworldsConnectLink(const char *pConLink)
 int main(int argc, const char **argv) // ignore_convention
 {
 #if defined(CONF_FAMILY_WINDOWS)
+	bool UseDefaultConsoleSettings = true;
 	for(int i = 1; i < argc; i++) // ignore_convention
 	{
+#ifdef CONF_RELEASE
+		if(str_comp("-c", argv[i]) == 0 || str_comp("--console", argv[i]) == 0) // ignore_convention
+#else
 		if(str_comp("-s", argv[i]) == 0 || str_comp("--silent", argv[i]) == 0) // ignore_convention
+#endif
 		{
-			FreeConsole();
+			UseDefaultConsoleSettings = false;
 			break;
 		}
 	}
+#ifdef CONF_RELEASE
+	if(!UseDefaultConsoleSettings)
+#else
+	if(UseDefaultConsoleSettings)
+#endif
+		FreeConsole();
 #endif
 
 	bool UseDefaultConfig = false;
