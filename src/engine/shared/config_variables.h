@@ -96,4 +96,7 @@ MACRO_CONFIG_INT(DbgHitch, dbg_hitch, 0, 0, 0, CFGFLAG_SERVER, "Hitch warnings")
 MACRO_CONFIG_STR(DbgStressServer, dbg_stress_server, 32, "localhost", CFGFLAG_CLIENT, "Server to stress")
 MACRO_CONFIG_INT(DbgResizable, dbg_resizable, 0, 0, 0, CFGFLAG_CLIENT, "Enables window resizing")
 
+// TeeSurf
+MACRO_CONFIG_INT(ClShowConsole, cl_show_console, 0, 0, 1, CFGFLAG_SAVE_TEESURF|CFGFLAG_CLIENT, "Show console window (Windows only)")
+
 #endif
